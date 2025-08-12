@@ -934,7 +934,7 @@ def confirm_received_handler(call):
 
 # --- Получить или создать реферальную ссылку для пользователя ---
 def get_referral_link(user_id):
-    base_url = "https://t.me/your_bot_username?start="
+    base_url = "https://t.me/VapeAlvabot?start="
     # Например, хэш или просто user_id для уникальной ссылки
     ref_code = str(user_id)
     return base_url + ref_code
@@ -1423,6 +1423,7 @@ def start_handler(message):
 if __name__ == "__main__":
     print("Бот запущен")
     bot.infinity_polling()
+
 
 
 
