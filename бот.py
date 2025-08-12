@@ -1422,6 +1422,7 @@ def start_handler(message):
 # --- Запуск бота ---
 if __name__ == "__main__":
     print("Бот запущен")
-    bot.infinity_polling())
+    bot.infinity_polling()
+
 
 
