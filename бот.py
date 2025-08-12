@@ -306,88 +306,43 @@ def menu_handler(message):
 
     # Обработка состояния написания отзыва
     if user_states.get(user_id) == "writing_review":
-        # пассивно принимаем отзыв в отдельном хендлере ниже
-        return
-
-    if text == t("menu_catalog", lang) or text == t("menu_order", lang):
-        show_catalog_main_menu(message)
-        return
-
-    if text == t("menu_cart", lang):
-        show_cart(message)
-        return
-
-    if text == t("menu_about", lang):
-        bot.send_message(user_id, texts["about_ru"] if lang == "ru" else texts["about_ua"], parse_mode="Markdown")
-        return
-
-    if text == t("menu_partner", lang):
-        count = len(referrals.get(user_id, []))
-        spent = user_spending.get(user_id, 0)
-        try:
-            bot_username = bot.get_me().username
-        except Exception:
-            bot_username = "your_bot_username"
-        link = f"https://t.me/{bot_username}?start={user_id}"
-        partner_text = texts["partner_program_ru"] if lang == "ru" else texts["partner_program_ua"]
-        bot.send_message(user_id, partner_text.format(count=count, spent=spent, link=link), parse_mode="Markdown")
-        return
-
-    if text == t("menu_orders", lang):
-        show_user_orders(message)
-        return
-
-    # Исправленная логика для отзывов:
-    if text == t("menu_reviews", lang):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        markup.add(
-            types.KeyboardButton("✍ " + ("Оставить отзыв" if lang == "ru" else "Залишити відгук")),
-            types.KeyboardButton("👁 " + ("Просмотреть отзывы" if lang == "ru" else "Переглянути відгуки")),
-            types.KeyboardButton(t("back_btn", lang))
-        )
-        bot.send_message(user_id, t("please_choose", lang), reply_markup=markup)
-        return
-
-    if text == "✍ " + ("Оставить отзыв" if lang == "ru" else "Залишити відгук"):
-        bot.send_message(user_id, ("Напишите ваш отзыв и отправьте мне." if lang == "ru" else "Напишіть ваш відгук і надішліть мені."))
-        user_states[user_id] = "writing_review"
-        return
-
-    if text == "👁 " + ("Просмотреть отзывы" if lang == "ru" else "Переглянути відгуки"):
-        show_reviews(message)
-        return
-
-    if text == t("back_btn", lang):
-        send_main_menu(message)
-        return
-
-# Обработчик текста при написании отзыва
-@bot.message_handler(func=lambda m: user_states.get(m.from_user.id) == "writing_review")
-def handle_review_text(message):
-    user_id = message.from_user.id
-    lang = user_language.get(user_id, "ru")
-    text_msg = message.text.strip()
-    if text_msg:
-        username = message.from_user.username or message.from_user.first_name
-        reviews.append(f"@{username}: {text_msg}")
-        bot.send_message(user_id, texts["thank_review_ru"] if lang == "ru" else texts["thank_review_ua"])
+        reviews.append(f"@{message.from_user.username or message.from_user.first_name}: {text}")
+        bot.send_message(user_id, t("thank_review", lang))
         user_states[user_id] = None
-    else:
-        bot.send_message(user_id, ("Пожалуйста, напишите отзыв." if lang == "ru" else "Будь ласка, напишіть відгук."))
+        return
 
-# ---------- КАТАЛОГ ----------
+    if text == t("menu_catalog", lang):
+        show_catalog_main_menu(message)
+    elif text == t("menu_order", lang):
+        show_cart(message)
+    elif text == t("menu_cart", lang):
+        show_cart(message)
+    elif text == t("menu_partner", lang):
+        show_partner_program(message)
+    elif text == t("menu_orders", lang):
+        show_user_orders(message)
+    elif text == t("menu_reviews", lang):
+        user_states[user_id] = "writing_review"
+        bot.send_message(user_id,
+                         "Пожалуйста, напишите ваш отзыв. Он появится после проверки администратора." if lang == "ru"
+                         else "Будь ласка, напишіть ваш відгук. Він з’явиться після перевірки адміністратора.")
+    elif text == t("menu_about", lang):
+        bot.send_message(user_id, t("about", lang), parse_mode="Markdown")
+    else:
+        bot.send_message(user_id, t("please_choose", lang))
+
+# ------------- SHOW CATALOG MENUS AND PRODUCTS -------------
 def show_catalog_main_menu(message):
     user_id = message.from_user.id
     lang = user_language.get(user_id, "ru")
-
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton(cat_label("pods", lang), callback_data="cat_pods"),
         types.InlineKeyboardButton(cat_label("liquids", lang), callback_data="cat_liquids"),
         types.InlineKeyboardButton(cat_label("cartridges", lang), callback_data="cat_cartridges"),
-        types.InlineKeyboardButton(t("back_btn", lang), callback_data="back_main"),
+        types.InlineKeyboardButton(t("back_btn", lang), callback_data="back_main")
     )
-    bot.send_message(user_id, t("menu_catalog", lang), reply_markup=markup)
+    bot.send_message(user_id, t("please_choose", lang), reply_markup=markup)
 
 def show_catalog_submenu_cartridges(call, lang):
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -395,40 +350,44 @@ def show_catalog_submenu_cartridges(call, lang):
         types.InlineKeyboardButton(cat_label("cartridges_vaporesso", lang), callback_data="cat_cartridges_vaporesso"),
         types.InlineKeyboardButton(cat_label("cartridges_voopoo", lang), callback_data="cat_cartridges_voopoo"),
         types.InlineKeyboardButton(cat_label("cartridges_elfx", lang), callback_data="cat_cartridges_elfx"),
-        types.InlineKeyboardButton(t("back_btn", lang), callback_data="cat_cartridges_back"),
+        types.InlineKeyboardButton(t("back_btn", lang), callback_data="cat_cartridges_back")
     )
-    try:
-        bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                              text=t("menu_catalog", lang), reply_markup=markup)
-    except Exception:
-        # fallback if edit failed
-        bot.send_message(call.from_user.id, t("menu_catalog", lang), reply_markup=markup)
+    bot.edit_message_text(
+        chat_id=call.from_user.id,
+        message_id=call.message.message_id,
+        text=t("please_choose", lang),
+        reply_markup=markup
+    )
 
-def show_products_list(call_or_message, category, lang):
-    # call_or_message может быть CallbackQuery или Message
-    product_ids = PRODUCTS_BY_CATEGORY.get(category, [])
-    if not product_ids:
-        if isinstance(call_or_message, types.CallbackQuery):
-            bot.answer_callback_query(call_or_message.id, "Товары не найдены", show_alert=True)
-        else:
-            bot.send_message(call_or_message.from_user.id, "Товары не найдены")
+def show_products_list(call, category, lang):
+    user_id = call.from_user.id
+    pids = PRODUCTS_BY_CATEGORY.get(category, [])
+    if not pids:
+        bot.answer_callback_query(call.id, "В этом разделе пока нет товаров", show_alert=True)
         return
-    text = f"📦 {cat_label(category, lang)}:\n\n"
+    text = f"{cat_label(category, lang)}:\n\n"
     markup = types.InlineKeyboardMarkup(row_width=1)
-    for pid in product_ids:
+    for pid in pids:
         prod = PRODUCTS[pid]
-        text += f"{prod['name']} — {format_currency(prod['price'])}\n"
-        markup.add(types.InlineKeyboardButton(f"➕ {prod['name']}", callback_data=f"add_{pid}"))
+        text += f"• {prod['name']} — {format_currency(prod['price'])}\n"
+        markup.add(types.InlineKeyboardButton(f"Добавить в корзину 🛒", callback_data=f"add_{pid}"))
     markup.add(types.InlineKeyboardButton(t("back_btn", lang), callback_data="back_catalog"))
-    if isinstance(call_or_message, types.CallbackQuery):
-        try:
-            bot.edit_message_text(chat_id=call_or_message.from_user.id, message_id=call_or_message.message.message_id, text=text, reply_markup=markup)
-        except Exception:
-            bot.send_message(call_or_message.from_user.id, text, reply_markup=markup)
-    else:
-        bot.send_message(call_or_message.from_user.id, text, reply_markup=markup)
+    try:
+        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text=text, reply_markup=markup)
+    except Exception:
+        bot.send_message(user_id, text, reply_markup=markup)
 
-# ---------- CALLBACKS ----------
+# ------------- PARTNER PROGRAM -------------
+def show_partner_program(message):
+    user_id = message.from_user.id
+    lang = user_language.get(user_id, "ru")
+    count = len(referrals.get(user_id, []))
+    spent = user_spending.get(user_id, 0)
+    link = f"https://t.me/thevladzio_bot?start={user_id}"
+    text = t("partner_program", lang).format(count=count, spent=spent, link=link)
+    bot.send_message(user_id, text, parse_mode="Markdown")
+
+# ---------- CALLBACK HANDLER ----------
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = call.from_user.id
@@ -785,3 +744,4 @@ def show_user_orders(message):
 if __name__ == "__main__":
     print("Бот запущен")
     bot.infinity_polling()
+
