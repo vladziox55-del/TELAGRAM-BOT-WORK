@@ -1321,7 +1321,7 @@ def review_view_handler(call):
     
     # --- Реферальная система ---
 def get_referral_link(user_id):
-    return f"https://t.me/YourBotUsername?start=ref{user_id}"
+    return f"https://t.me/VapeAlvabot?start=ref{user_id}"
 
 def show_referral_menu(user_id, lang):
     referred = referrals.get(user_id, [])
@@ -1423,6 +1423,7 @@ def start_handler(message):
 if __name__ == "__main__":
     print("Бот запущен")
     bot.infinity_polling()
+
 
 
 
